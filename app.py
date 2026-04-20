@@ -12,9 +12,6 @@ app = Flask(__name__)
 # ============================================================
 # DATABASE CONNECTION
 # ============================================================
-# This function creates a connection to Azure SQL Database.
-# In production, you'd use environment variables (not hardcoded values)
-# We'll configure these as App Settings in Azure App Service later.
 
 def get_db_connection():
     """Connect to Azure SQL Database using ODBC driver."""
@@ -33,14 +30,14 @@ def get_db_connection():
 # ============================================================
 # CREATE TABLE (runs once on startup)
 # ============================================================
-# This ensures the Tasks table exists in the database.
-# IF NOT EXISTS prevents errors if the table already exists.
 
 def init_db():
-    """Create the Tasks table if it doesn't exist."""
+    """Create the Tasks table if it doesn't exist, and migrate if needed."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        # Create table if not exists
         cursor.execute("""
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='tasks' AND xtype='U')
             CREATE TABLE tasks (
@@ -48,9 +45,20 @@ def init_db():
                 title NVARCHAR(200) NOT NULL,
                 description NVARCHAR(500),
                 is_complete BIT DEFAULT 0,
+                priority NVARCHAR(20) DEFAULT 'medium',
                 created_at DATETIME DEFAULT GETDATE()
             )
         """)
+
+        # Add priority column if table exists but column doesn't
+        cursor.execute("""
+            IF NOT EXISTS (
+                SELECT * FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_NAME = 'tasks' AND COLUMN_NAME = 'priority'
+            )
+            ALTER TABLE tasks ADD priority NVARCHAR(20) DEFAULT 'medium'
+        """)
+
         conn.commit()
         cursor.close()
         conn.close()
@@ -60,39 +68,70 @@ def init_db():
 
 
 # ============================================================
-# ROUTES (the pages of your app)
+# ROUTES
 # ============================================================
 
-# --- READ: Show all tasks (homepage) ---
 @app.route('/')
 def index():
-    """Display all tasks - this is the R in CRUD."""
+    """Display all tasks with dashboard stats."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id, title, description, is_complete, created_at FROM tasks ORDER BY created_at DESC")
+        cursor.execute("""
+            SELECT id, title, description, is_complete, created_at, priority
+            FROM tasks ORDER BY
+                is_complete ASC,
+                CASE priority
+                    WHEN 'high' THEN 1
+                    WHEN 'medium' THEN 2
+                    WHEN 'low' THEN 3
+                    ELSE 4
+                END,
+                created_at DESC
+        """)
         tasks = cursor.fetchall()
         cursor.close()
         conn.close()
-        return render_template('index.html', tasks=tasks)
+
+        # Build dashboard stats
+        total = len(tasks)
+        completed = sum(1 for t in tasks if t[3])
+        pending = total - completed
+        high = sum(1 for t in tasks if (t[5] or 'medium') == 'high' and not t[3])
+        medium = sum(1 for t in tasks if (t[5] or 'medium') == 'medium' and not t[3])
+        low = sum(1 for t in tasks if (t[5] or 'medium') == 'low' and not t[3])
+        pct = round((completed / total) * 100) if total > 0 else 0
+
+        stats = {
+            'total': total,
+            'completed': completed,
+            'pending': pending,
+            'high': high,
+            'medium': medium,
+            'low': low,
+            'pct': pct,
+        }
+
+        return render_template('index.html', tasks=tasks, stats=stats)
     except Exception as e:
-        return render_template('index.html', tasks=[], error=str(e))
+        stats = {'total':0,'completed':0,'pending':0,'high':0,'medium':0,'low':0,'pct':0}
+        return render_template('index.html', tasks=[], stats=stats, error=str(e))
 
 
-# --- CREATE: Add a new task ---
 @app.route('/add', methods=['POST'])
 def add_task():
-    """Add a new task - this is the C in CRUD."""
+    """Add a new task."""
     title = request.form.get('title', '').strip()
     description = request.form.get('description', '').strip()
+    priority = request.form.get('priority', 'medium')
 
-    if title:  # Only add if title is not empty
+    if title:
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO tasks (title, description) VALUES (?, ?)",
-                (title, description)
+                "INSERT INTO tasks (title, description, priority) VALUES (?, ?, ?)",
+                (title, description, priority)
             )
             conn.commit()
             cursor.close()
@@ -103,10 +142,9 @@ def add_task():
     return redirect(url_for('index'))
 
 
-# --- UPDATE: Toggle task completion ---
 @app.route('/toggle/<int:task_id>')
 def toggle_task(task_id):
-    """Toggle a task's completion status - this is the U in CRUD."""
+    """Toggle a task's completion status."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -123,10 +161,9 @@ def toggle_task(task_id):
     return redirect(url_for('index'))
 
 
-# --- DELETE: Remove a task ---
 @app.route('/delete/<int:task_id>')
 def delete_task(task_id):
-    """Delete a task - this is the D in CRUD."""
+    """Delete a task."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -141,12 +178,9 @@ def delete_task(task_id):
 
 
 # ============================================================
-# INITIALIZE DB ON STARTUP (works with gunicorn too)
+# INITIALIZE DB ON STARTUP
 # ============================================================
 init_db()
 
-# ============================================================
-# START THE APP
-# ============================================================
 if __name__ == '__main__':
     app.run(debug=True)

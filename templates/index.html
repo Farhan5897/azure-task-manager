@@ -3,283 +3,593 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager - Azure Project 2</title>
+    <title>Task Manager — Farhan Alam</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-            color: #e2e8f0;
-            min-height: 100vh;
-            padding: 2rem;
-        }
-        .container { max-width: 700px; margin: 0 auto; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
-        /* Header */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #111110;
+            --bg-card: #1a1a19;
+            --bg-elevated: #222221;
+            --bg-input: #161615;
+            --border: #2a2a28;
+            --border-hover: #3a3a37;
+            --text: #eeeeec;
+            --text-muted: #a0a09b;
+            --text-dim: #6b6b66;
+            --accent: #e5a430;
+            --accent-soft: rgba(229, 164, 48, 0.1);
+            --accent-border: rgba(229, 164, 48, 0.2);
+            --green: #4ade80;
+            --green-soft: rgba(74, 222, 128, 0.1);
+            --green-border: rgba(74, 222, 128, 0.2);
+            --red: #f87171;
+            --red-soft: rgba(248, 113, 113, 0.1);
+            --red-border: rgba(248, 113, 113, 0.2);
+            --orange: #fb923c;
+            --orange-soft: rgba(251, 146, 60, 0.1);
+            --blue: #60a5fa;
+            --blue-soft: rgba(96, 165, 250, 0.1);
+            --radius: 12px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text-muted);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* ===== LAYOUT ===== */
+        .app { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+        /* ===== HEADER ===== */
         .header {
-            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .header-left h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 2px;
+        }
+        .header-left p {
+            font-size: 0.82rem;
+            color: var(--text-dim);
+        }
+        .header-right {
+            display: flex; gap: 0.5rem;
+        }
+        .header-chip {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+        }
+
+        /* ===== DASHBOARD ===== */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
             margin-bottom: 2rem;
         }
-        .badge {
-            display: inline-block;
-            background: rgba(59, 130, 246, 0.15);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            color: #60a5fa;
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
+
+        .dash-progress {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            grid-column: 1 / -1;
+        }
+        .dash-progress-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.8rem;
+        }
+        .dash-progress-top h3 {
+            font-size: 0.9rem;
+            color: var(--text);
+            font-weight: 600;
+        }
+        .dash-progress-pct {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-elevated);
+            border-radius: 4px;
+            overflow: hidden;
             margin-bottom: 1rem;
         }
-        h1 {
-            font-size: 2.2rem;
-            background: linear-gradient(to right, #60a5fa, #a78bfa);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #f0c060);
+            border-radius: 4px;
+            transition: width 0.8s ease;
         }
-        .subtitle { color: #94a3b8; font-size: 0.95rem; }
+        .dash-progress-row {
+            display: flex;
+            gap: 2rem;
+        }
+        .dash-progress-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.82rem;
+        }
+        .dash-progress-stat .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+        }
+        .dot-done { background: var(--green); }
+        .dot-pending { background: var(--text-dim); }
 
-        /* Add Task Form */
+        .dash-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.2rem 1.5rem;
+        }
+        .dash-card-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.4rem;
+        }
+        .dash-card-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .dash-priorities {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.2rem 1.5rem;
+        }
+        .dash-priorities .dash-card-label { margin-bottom: 0.8rem; }
+        .priority-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+        .priority-row {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            font-size: 0.82rem;
+        }
+        .priority-row .label {
+            width: 55px;
+            flex-shrink: 0;
+        }
+        .priority-row .bar-bg {
+            flex: 1;
+            height: 6px;
+            background: var(--bg-elevated);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .priority-row .bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.6s ease;
+        }
+        .bar-high { background: var(--red); }
+        .bar-med { background: var(--accent); }
+        .bar-low { background: var(--green); }
+        .priority-row .count {
+            font-family: 'JetBrains Mono', monospace;
+            width: 20px;
+            text-align: right;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        /* ===== ADD FORM ===== */
         .add-form {
-            background: rgba(30, 41, 59, 0.8);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            border-radius: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
             padding: 1.5rem;
             margin-bottom: 1.5rem;
         }
-        .add-form h2 {
-            font-size: 1.1rem;
-            color: #f1f5f9;
+        .form-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
             margin-bottom: 1rem;
         }
-        .form-group { margin-bottom: 0.8rem; }
-        .form-group input, .form-group textarea {
+        .form-row {
+            display: flex;
+            gap: 0.8rem;
+            margin-bottom: 0.8rem;
+        }
+        .form-row-full { flex-direction: column; }
+        input[type="text"], textarea {
             width: 100%;
-            padding: 0.7rem 1rem;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(148, 163, 184, 0.2);
+            padding: 0.65rem 1rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            color: #e2e8f0;
-            font-family: inherit;
-            font-size: 0.95rem;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
             outline: none;
             transition: border-color 0.2s;
         }
-        .form-group input:focus, .form-group textarea:focus {
-            border-color: rgba(59, 130, 246, 0.5);
+        input[type="text"]:focus, textarea:focus {
+            border-color: var(--accent-border);
         }
-        .form-group textarea { resize: vertical; min-height: 60px; }
-        .btn-add {
-            background: rgba(59, 130, 246, 0.3);
-            border: 1px solid rgba(59, 130, 246, 0.4);
-            color: #60a5fa;
-            padding: 0.7rem 1.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            transition: background 0.2s;
+        input[type="text"]::placeholder, textarea::placeholder {
+            color: var(--text-dim);
         }
-        .btn-add:hover { background: rgba(59, 130, 246, 0.5); }
+        textarea { resize: vertical; min-height: 50px; }
 
-        /* Task List */
+        select {
+            padding: 0.65rem 1rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+            cursor: pointer;
+            min-width: 130px;
+        }
+        select:focus { border-color: var(--accent-border); }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+        .btn-add {
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            padding: 0.65rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+        .btn-add:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+        /* ===== TASK LIST ===== */
+        .section-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+            margin-bottom: 1rem;
+        }
         .task-list { list-style: none; }
         .task-item {
-            background: rgba(30, 41, 59, 0.8);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            border-radius: 12px;
-            padding: 1.2rem 1.5rem;
-            margin-bottom: 0.8rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.2rem;
+            margin-bottom: 0.6rem;
             display: flex;
             align-items: center;
             gap: 1rem;
-            transition: border-color 0.2s;
+            transition: all 0.2s;
         }
-        .task-item:hover { border-color: rgba(59, 130, 246, 0.3); }
-        .task-item.completed { opacity: 0.5; }
-        .task-item.completed .task-title { text-decoration: line-through; }
-        .task-content { flex: 1; }
+        .task-item:hover { border-color: var(--border-hover); }
+        .task-item.completed {
+            opacity: 0.45;
+        }
+        .task-item.completed .task-title {
+            text-decoration: line-through;
+            color: var(--text-dim);
+        }
+
+        .priority-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .priority-dot.high { background: var(--red); box-shadow: 0 0 8px rgba(248, 113, 113, 0.3); }
+        .priority-dot.medium { background: var(--accent); box-shadow: 0 0 8px rgba(229, 164, 48, 0.3); }
+        .priority-dot.low { background: var(--green); box-shadow: 0 0 8px rgba(74, 222, 128, 0.3); }
+
+        .task-content { flex: 1; min-width: 0; }
         .task-title {
-            font-size: 1.05rem;
-            color: #f1f5f9;
-            margin-bottom: 0.2rem;
+            font-size: 0.95rem;
+            color: var(--text);
+            font-weight: 500;
+            margin-bottom: 2px;
         }
         .task-desc {
-            font-size: 0.85rem;
-            color: #94a3b8;
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .task-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-top: 4px;
         }
         .task-date {
-            font-size: 0.75rem;
-            color: #64748b;
-            margin-top: 0.3rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
         }
-        .task-actions { display: flex; gap: 0.5rem; }
-        .btn-toggle, .btn-delete {
-            padding: 0.4rem 0.8rem;
-            border-radius: 6px;
-            border: 1px solid;
-            cursor: pointer;
-            font-size: 0.8rem;
-            text-decoration: none;
-            transition: background 0.2s;
+        .task-priority-tag {
+            font-size: 0.68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 8px;
+            border-radius: 4px;
         }
-        .btn-toggle {
-            background: rgba(34, 197, 94, 0.15);
-            border-color: rgba(34, 197, 94, 0.3);
-            color: #4ade80;
-        }
-        .btn-toggle:hover { background: rgba(34, 197, 94, 0.3); }
-        .btn-delete {
-            background: rgba(239, 68, 68, 0.15);
-            border-color: rgba(239, 68, 68, 0.3);
-            color: #f87171;
-        }
-        .btn-delete:hover { background: rgba(239, 68, 68, 0.3); }
+        .tag-high { background: var(--red-soft); color: var(--red); }
+        .tag-medium { background: var(--accent-soft); color: var(--accent); }
+        .tag-low { background: var(--green-soft); color: var(--green); }
 
-        /* Stats */
-        .stats {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .stat-card {
-            flex: 1;
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            border-radius: 10px;
-            padding: 1rem;
-            text-align: center;
-        }
-        .stat-number {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #60a5fa;
-        }
-        .stat-label { font-size: 0.8rem; color: #94a3b8; }
-
-        /* Empty state */
-        .empty {
-            text-align: center;
-            padding: 3rem;
-            color: #64748b;
-        }
-        .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
-
-        /* Error */
-        .error-box {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
+        .task-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+        .btn-action {
+            width: 34px; height: 34px;
             border-radius: 8px;
-            padding: 1rem;
-            color: #f87171;
-            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            text-decoration: none;
             font-size: 0.9rem;
         }
+        .btn-toggle {
+            color: var(--green);
+        }
+        .btn-toggle:hover {
+            background: var(--green-soft);
+            border-color: var(--green-border);
+        }
+        .btn-undo {
+            color: var(--accent);
+        }
+        .btn-undo:hover {
+            background: var(--accent-soft);
+            border-color: var(--accent-border);
+        }
+        .btn-delete {
+            color: var(--red);
+        }
+        .btn-delete:hover {
+            background: var(--red-soft);
+            border-color: var(--red-border);
+        }
 
-        /* Footer */
+        /* ===== EMPTY STATE ===== */
+        .empty {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-dim);
+        }
+        .empty-icon { font-size: 2.5rem; margin-bottom: 0.8rem; opacity: 0.5; }
+        .empty p { font-size: 0.9rem; }
+
+        /* ===== ERROR ===== */
+        .error-box {
+            background: var(--red-soft);
+            border: 1px solid var(--red-border);
+            border-radius: 8px;
+            padding: 0.8rem 1rem;
+            color: var(--red);
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ===== FOOTER ===== */
         footer {
             text-align: center;
-            padding: 2rem;
-            color: #475569;
-            font-size: 0.85rem;
+            padding: 2rem 0;
+            margin-top: 2rem;
+            border-top: 1px solid var(--border);
         }
-        .tech-stack { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-top: 0.8rem; }
-        .tech-tag {
-            background: rgba(99, 102, 241, 0.15);
-            color: #818cf8;
-            padding: 0.25rem 0.7rem;
-            border-radius: 6px;
-            font-size: 0.75rem;
+        footer p {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+        }
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        footer a:hover { text-decoration: underline; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            .dashboard { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; gap: 0.8rem; }
+            .header-right { align-self: flex-start; }
+            .form-row { flex-direction: column; }
+            .task-item { flex-wrap: wrap; }
+            .task-actions { width: 100%; justify-content: flex-end; }
+            .dash-progress-row { flex-wrap: wrap; gap: 1rem; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
+    <div class="app">
+
+        <!-- HEADER -->
         <div class="header">
-            <div class="badge">Azure Cloud Project #2</div>
-            <h1>Task Manager</h1>
-            <p class="subtitle">Built with Python Flask + Azure SQL + App Service | CI/CD by GitHub Actions</p>
+            <div class="header-left">
+                <h1>task.manager</h1>
+                <p>Built by Farhan Alam on Azure</p>
+            </div>
+            <div class="header-right">
+                <span class="header-chip">Flask</span>
+                <span class="header-chip">Azure SQL</span>
+                <span class="header-chip">CI/CD</span>
+            </div>
         </div>
 
-        <!-- Error display -->
+        <!-- ERROR -->
         {% if error %}
         <div class="error-box">
-            Database connection error: {{ error }}
+            [error] {{ error }}
         </div>
         {% endif %}
 
-        <!-- Stats -->
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-number">{{ tasks|length }}</div>
-                <div class="stat-label">Total Tasks</div>
+        <!-- DASHBOARD -->
+        <div class="dashboard">
+            <!-- Progress bar (full width) -->
+            <div class="dash-progress">
+                <div class="dash-progress-top">
+                    <h3>Completion</h3>
+                    <span class="dash-progress-pct">{{ stats.pct }}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ stats.pct }}%"></div>
+                </div>
+                <div class="dash-progress-row">
+                    <div class="dash-progress-stat">
+                        <span class="dot dot-done"></span>
+                        <span>{{ stats.completed }} done</span>
+                    </div>
+                    <div class="dash-progress-stat">
+                        <span class="dot dot-pending"></span>
+                        <span>{{ stats.pending }} pending</span>
+                    </div>
+                    <div class="dash-progress-stat" style="margin-left:auto; color:var(--text-dim);">
+                        {{ stats.total }} total
+                    </div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number">{{ tasks|selectattr(4)|list|length if tasks else 0 }}</div>
-                <div class="stat-label">Completed</div>
+
+            <!-- Total tasks card -->
+            <div class="dash-card">
+                <div class="dash-card-label">Total Tasks</div>
+                <div class="dash-card-value">{{ stats.total }}</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number">{{ tasks|rejectattr(4)|list|length if tasks else 0 }}</div>
-                <div class="stat-label">Pending</div>
+
+            <!-- Priority breakdown -->
+            <div class="dash-priorities">
+                <div class="dash-card-label">Active by Priority</div>
+                <div class="priority-bars">
+                    <div class="priority-row">
+                        <span class="label" style="color:var(--red)">High</span>
+                        <div class="bar-bg">
+                            <div class="bar-fill bar-high" style="width: {{ (stats.high / stats.pending * 100) if stats.pending > 0 else 0 }}%"></div>
+                        </div>
+                        <span class="count">{{ stats.high }}</span>
+                    </div>
+                    <div class="priority-row">
+                        <span class="label" style="color:var(--accent)">Medium</span>
+                        <div class="bar-bg">
+                            <div class="bar-fill bar-med" style="width: {{ (stats.medium / stats.pending * 100) if stats.pending > 0 else 0 }}%"></div>
+                        </div>
+                        <span class="count">{{ stats.medium }}</span>
+                    </div>
+                    <div class="priority-row">
+                        <span class="label" style="color:var(--green)">Low</span>
+                        <div class="bar-bg">
+                            <div class="bar-fill bar-low" style="width: {{ (stats.low / stats.pending * 100) if stats.pending > 0 else 0 }}%"></div>
+                        </div>
+                        <span class="count">{{ stats.low }}</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Add Task Form -->
+        <!-- ADD TASK FORM -->
         <div class="add-form">
-            <h2>Add New Task</h2>
+            <div class="form-title">New Task</div>
             <form method="POST" action="/add">
-                <div class="form-group">
-                    <input type="text" name="title" placeholder="Task title..." required>
+                <div class="form-row">
+                    <input type="text" name="title" placeholder="What needs to be done?" required>
+                    <select name="priority">
+                        <option value="high">High</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="low">Low</option>
+                    </select>
                 </div>
-                <div class="form-group">
-                    <textarea name="description" placeholder="Description (optional)..." rows="2"></textarea>
+                <div class="form-row form-row-full">
+                    <textarea name="description" placeholder="Add a description (optional)..." rows="2"></textarea>
                 </div>
-                <button type="submit" class="btn-add">+ Add Task</button>
+                <div class="form-actions">
+                    <button type="submit" class="btn-add">Add Task</button>
+                </div>
             </form>
         </div>
 
-        <!-- Task List -->
+        <!-- TASK LIST -->
         {% if tasks %}
+        <div class="section-label">Tasks ({{ tasks|length }})</div>
         <ul class="task-list">
             {% for task in tasks %}
             <li class="task-item {{ 'completed' if task[3] else '' }}">
+                <div class="priority-dot {{ (task[5] or 'medium') }}"></div>
                 <div class="task-content">
                     <div class="task-title">{{ task[1] }}</div>
                     {% if task[2] %}
                     <div class="task-desc">{{ task[2] }}</div>
                     {% endif %}
-                    <div class="task-date">
-                        {{ task[4].strftime('%b %d, %Y at %I:%M %p') if task[4] else '' }}
+                    <div class="task-meta">
+                        <span class="task-date">
+                            {{ task[4].strftime('%b %d, %Y') if task[4] else '' }}
+                        </span>
+                        <span class="task-priority-tag tag-{{ task[5] or 'medium' }}">
+                            {{ (task[5] or 'medium') }}
+                        </span>
                     </div>
                 </div>
                 <div class="task-actions">
-                    <a href="/toggle/{{ task[0] }}" class="btn-toggle">
-                        {{ '&#10003; Done' if not task[3] else '&#8634; Undo' }}
-                    </a>
-                    <a href="/delete/{{ task[0] }}" class="btn-delete" onclick="return confirm('Delete this task?')">
-                        &#10005; Delete
-                    </a>
+                    {% if not task[3] %}
+                    <a href="/toggle/{{ task[0] }}" class="btn-action btn-toggle" title="Mark done">&#10003;</a>
+                    {% else %}
+                    <a href="/toggle/{{ task[0] }}" class="btn-action btn-undo" title="Undo">&#8634;</a>
+                    {% endif %}
+                    <a href="/delete/{{ task[0] }}" class="btn-action btn-delete" title="Delete" onclick="return confirm('Delete this task?')">&#10005;</a>
                 </div>
             </li>
             {% endfor %}
         </ul>
         {% else %}
         <div class="empty">
-            <div class="empty-icon">&#128203;</div>
-            <p>No tasks yet. Add your first task above!</p>
+            <div class="empty-icon">&#9744;</div>
+            <p>No tasks yet — add one above to get started.</p>
         </div>
         {% endif %}
 
-        <!-- Footer -->
+        <!-- FOOTER -->
         <footer>
-            Built by Farhan Alam &bull; Azure Project 2 of 7
-            <div class="tech-stack">
-                <span class="tech-tag">Python Flask</span>
-                <span class="tech-tag">Azure SQL</span>
-                <span class="tech-tag">App Service</span>
-                <span class="tech-tag">CRUD</span>
-            </div>
+            <p>Built by <a href="https://farhan5897.github.io" target="_blank">Farhan Alam</a> &middot; Powered by Azure</p>
         </footer>
+
     </div>
 </body>
 </html>
