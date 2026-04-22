@@ -623,18 +623,20 @@
             window.location.href = '/?date=' + this.value;
         });
 
-        // Arrow navigation
-        const currentDate = new Date('{{ filter_date }}T00:00:00');
+        // Arrow navigation — use UTC to avoid timezone shift
+        function shiftDate(dateStr, days) {
+            var parts = dateStr.split('-');
+            var d = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
+            d.setUTCDate(d.getUTCDate() + days);
+            var y = d.getUTCFullYear();
+            var m = String(d.getUTCMonth() + 1).padStart(2, '0');
+            var day = String(d.getUTCDate()).padStart(2, '0');
+            return y + '-' + m + '-' + day;
+        }
 
-        const prevDate = new Date(currentDate);
-        prevDate.setDate(prevDate.getDate() - 1);
-        const prevStr = prevDate.toISOString().split('T')[0];
-        document.getElementById('prevDay').href = '/?date=' + prevStr;
-
-        const nextDate = new Date(currentDate);
-        nextDate.setDate(nextDate.getDate() + 1);
-        const nextStr = nextDate.toISOString().split('T')[0];
-        document.getElementById('nextDay').href = '/?date=' + nextStr;
+        var current = '{{ filter_date }}';
+        document.getElementById('prevDay').href = '/?date=' + shiftDate(current, -1);
+        document.getElementById('nextDay').href = '/?date=' + shiftDate(current, 1);
     </script>
 </body>
 </html>
