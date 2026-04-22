@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager — Farhan Alam</title>
+    <title>Task Manager — {{ username }}</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -31,6 +31,7 @@
             --orange-soft: rgba(251, 146, 60, 0.1);
             --blue: #60a5fa;
             --blue-soft: rgba(96, 165, 250, 0.1);
+            --blue-border: rgba(96, 165, 250, 0.2);
             --radius: 12px;
         }
 
@@ -42,7 +43,6 @@
             line-height: 1.6;
         }
 
-        /* ===== LAYOUT ===== */
         .app { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; }
 
         /* ===== HEADER ===== */
@@ -50,7 +50,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             padding-bottom: 1.5rem;
             border-bottom: 1px solid var(--border);
         }
@@ -68,16 +68,6 @@
         .header-right {
             display: flex; gap: 0.5rem;
         }
-        .header-chip {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            padding: 4px 10px;
-            border-radius: 6px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            color: var(--text-dim);
-        }
-
         .header-user {
             display: flex;
             align-items: center;
@@ -105,45 +95,134 @@
             color: var(--red);
         }
 
+        /* ===== DATE NAV ===== */
+        .date-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .date-nav-arrows {
+            display: flex;
+            gap: 0.3rem;
+        }
+        .date-nav-arrows a {
+            width: 34px; height: 34px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        .date-nav-arrows a:hover {
+            border-color: var(--accent-border);
+            color: var(--accent);
+        }
+        .date-display {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .date-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-today { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-border); }
+        .badge-past { background: var(--red-soft); color: var(--red); border: 1px solid var(--red-border); }
+        .badge-future { background: var(--blue-soft); color: var(--blue); border: 1px solid var(--blue-border); }
+
+        .date-picker-wrap {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .date-picker-wrap input[type="date"] {
+            padding: 6px 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            outline: none;
+            cursor: pointer;
+            color-scheme: dark;
+        }
+        .date-picker-wrap input[type="date"]:focus { border-color: var(--accent-border); }
+        .btn-today {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 6px 12px;
+            border-radius: 8px;
+            background: var(--accent-soft);
+            border: 1px solid var(--accent-border);
+            color: var(--accent);
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-today:hover { background: var(--accent); color: var(--bg); }
+
         /* ===== DASHBOARD ===== */
         .dashboard {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 2rem;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 0.8rem;
+            margin-bottom: 1.5rem;
         }
-
-        .dash-progress {
+        .dash-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 1.5rem;
-            grid-column: 1 / -1;
+            padding: 1rem 1.2rem;
         }
-        .dash-progress-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 0.8rem;
+        .dash-card-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.3rem;
         }
-        .dash-progress-top h3 {
-            font-size: 0.9rem;
-            color: var(--text);
-            font-weight: 600;
-        }
-        .dash-progress-pct {
+        .dash-card-value {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 1.4rem;
+            font-size: 1.5rem;
             font-weight: 700;
-            color: var(--accent);
+            color: var(--text);
+        }
+        .dash-card-value.green { color: var(--green); }
+        .dash-card-value.red { color: var(--red); }
+        .dash-card-value.blue { color: var(--blue); }
+
+        .dash-progress-row {
+            grid-column: 1 / -1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .progress-label {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            white-space: nowrap;
         }
         .progress-bar {
-            width: 100%;
+            flex: 1;
             height: 8px;
             background: var(--bg-elevated);
             border-radius: 4px;
             overflow: hidden;
-            margin-bottom: 1rem;
         }
         .progress-fill {
             height: 100%;
@@ -151,87 +230,13 @@
             border-radius: 4px;
             transition: width 0.8s ease;
         }
-        .dash-progress-row {
-            display: flex;
-            gap: 2rem;
-        }
-        .dash-progress-stat {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.82rem;
-        }
-        .dash-progress-stat .dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-        }
-        .dot-done { background: var(--green); }
-        .dot-pending { background: var(--text-dim); }
-
-        .dash-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 1.2rem 1.5rem;
-        }
-        .dash-card-label {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 0.4rem;
-        }
-        .dash-card-value {
+        .progress-pct {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 1.6rem;
+            font-size: 0.95rem;
             font-weight: 700;
-            color: var(--text);
-        }
-
-        .dash-priorities {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 1.2rem 1.5rem;
-        }
-        .dash-priorities .dash-card-label { margin-bottom: 0.8rem; }
-        .priority-bars {
-            display: flex;
-            flex-direction: column;
-            gap: 0.6rem;
-        }
-        .priority-row {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            font-size: 0.82rem;
-        }
-        .priority-row .label {
-            width: 55px;
-            flex-shrink: 0;
-        }
-        .priority-row .bar-bg {
-            flex: 1;
-            height: 6px;
-            background: var(--bg-elevated);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        .priority-row .bar-fill {
-            height: 100%;
-            border-radius: 3px;
-            transition: width 0.6s ease;
-        }
-        .bar-high { background: var(--red); }
-        .bar-med { background: var(--accent); }
-        .bar-low { background: var(--green); }
-        .priority-row .count {
-            font-family: 'JetBrains Mono', monospace;
-            width: 20px;
+            color: var(--accent);
+            min-width: 40px;
             text-align: right;
-            color: var(--text);
-            font-weight: 600;
-            font-size: 0.85rem;
         }
 
         /* ===== ADD FORM ===== */
@@ -250,7 +255,7 @@
         }
         .form-row {
             display: flex;
-            gap: 0.8rem;
+            gap: 0.6rem;
             margin-bottom: 0.8rem;
         }
         .form-row-full { flex-direction: column; }
@@ -266,27 +271,25 @@
             outline: none;
             transition: border-color 0.2s;
         }
-        input[type="text"]:focus, textarea:focus {
-            border-color: var(--accent-border);
-        }
-        input[type="text"]::placeholder, textarea::placeholder {
-            color: var(--text-dim);
-        }
+        input[type="text"]:focus, textarea:focus { border-color: var(--accent-border); }
+        input[type="text"]::placeholder, textarea::placeholder { color: var(--text-dim); }
         textarea { resize: vertical; min-height: 50px; }
 
-        select {
-            padding: 0.65rem 1rem;
+        select, .form-date-input {
+            padding: 0.65rem 0.8rem;
             background: var(--bg-input);
             border: 1px solid var(--border);
             border-radius: 8px;
             color: var(--text);
             font-family: 'Inter', sans-serif;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             outline: none;
             cursor: pointer;
-            min-width: 130px;
+            color-scheme: dark;
         }
-        select:focus { border-color: var(--accent-border); }
+        select:focus, .form-date-input:focus { border-color: var(--accent-border); }
+        select { min-width: 110px; }
+        .form-date-input { min-width: 140px; }
 
         .form-actions {
             display: flex;
@@ -328,13 +331,12 @@
             transition: all 0.2s;
         }
         .task-item:hover { border-color: var(--border-hover); }
-        .task-item.completed {
-            opacity: 0.45;
-        }
+        .task-item.completed { opacity: 0.45; }
         .task-item.completed .task-title {
             text-decoration: line-through;
             color: var(--text-dim);
         }
+        .task-item.overdue { border-left: 3px solid var(--red); }
 
         .priority-dot {
             width: 10px; height: 10px;
@@ -362,8 +364,9 @@
         .task-meta {
             display: flex;
             align-items: center;
-            gap: 0.8rem;
+            gap: 0.6rem;
             margin-top: 4px;
+            flex-wrap: wrap;
         }
         .task-date {
             font-family: 'JetBrains Mono', monospace;
@@ -371,7 +374,7 @@
             color: var(--text-dim);
         }
         .task-priority-tag {
-            font-size: 0.68rem;
+            font-size: 0.65rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -381,6 +384,18 @@
         .tag-high { background: var(--red-soft); color: var(--red); }
         .tag-medium { background: var(--accent-soft); color: var(--accent); }
         .tag-low { background: var(--green-soft); color: var(--green); }
+
+        .task-due-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .due-overdue { background: var(--red-soft); color: var(--red); }
+        .due-today { background: var(--accent-soft); color: var(--accent); }
+        .due-future { background: var(--blue-soft); color: var(--blue); }
+        .due-none { background: var(--bg-elevated); color: var(--text-dim); }
 
         .task-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
         .btn-action {
@@ -396,27 +411,12 @@
             text-decoration: none;
             font-size: 0.9rem;
         }
-        .btn-toggle {
-            color: var(--green);
-        }
-        .btn-toggle:hover {
-            background: var(--green-soft);
-            border-color: var(--green-border);
-        }
-        .btn-undo {
-            color: var(--accent);
-        }
-        .btn-undo:hover {
-            background: var(--accent-soft);
-            border-color: var(--accent-border);
-        }
-        .btn-delete {
-            color: var(--red);
-        }
-        .btn-delete:hover {
-            background: var(--red-soft);
-            border-color: var(--red-border);
-        }
+        .btn-toggle { color: var(--green); }
+        .btn-toggle:hover { background: var(--green-soft); border-color: var(--green-border); }
+        .btn-undo { color: var(--accent); }
+        .btn-undo:hover { background: var(--accent-soft); border-color: var(--accent-border); }
+        .btn-delete { color: var(--red); }
+        .btn-delete:hover { background: var(--red-soft); border-color: var(--red-border); }
 
         /* ===== EMPTY STATE ===== */
         .empty {
@@ -426,6 +426,7 @@
         }
         .empty-icon { font-size: 2.5rem; margin-bottom: 0.8rem; opacity: 0.5; }
         .empty p { font-size: 0.9rem; }
+        .empty .sub { font-size: 0.8rem; margin-top: 0.3rem; }
 
         /* ===== ERROR ===== */
         .error-box {
@@ -446,25 +447,19 @@
             margin-top: 2rem;
             border-top: 1px solid var(--border);
         }
-        footer p {
-            font-size: 0.78rem;
-            color: var(--text-dim);
-        }
-        footer a {
-            color: var(--accent);
-            text-decoration: none;
-        }
+        footer p { font-size: 0.78rem; color: var(--text-dim); }
+        footer a { color: var(--accent); text-decoration: none; }
         footer a:hover { text-decoration: underline; }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 600px) {
-            .dashboard { grid-template-columns: 1fr; }
+            .dashboard { grid-template-columns: 1fr 1fr; }
             .header { flex-direction: column; align-items: flex-start; gap: 0.8rem; }
-            .header-right { align-self: flex-start; }
+            .date-nav { flex-direction: column; align-items: flex-start; }
+            .date-picker-wrap { margin-left: 0; }
             .form-row { flex-direction: column; }
             .task-item { flex-wrap: wrap; }
             .task-actions { width: 100%; justify-content: flex-end; }
-            .dash-progress-row { flex-wrap: wrap; gap: 1rem; }
         }
     </style>
 </head>
@@ -487,69 +482,57 @@
 
         <!-- ERROR -->
         {% if error %}
-        <div class="error-box">
-            [error] {{ error }}
-        </div>
+        <div class="error-box">[error] {{ error }}</div>
         {% endif %}
+
+        <!-- DATE NAVIGATION -->
+        <div class="date-nav">
+            <div class="date-nav-arrows">
+                <a href="/?date={{ (filter_date | replace('-','') | int - 1) if false else '' }}" id="prevDay" title="Previous day">&#8592;</a>
+                <a href="/?date=" id="nextDay" title="Next day">&#8594;</a>
+            </div>
+            <span class="date-display">{{ filter_date_display }}</span>
+            {% if is_today %}
+            <span class="date-badge badge-today">Today</span>
+            {% elif is_past %}
+            <span class="date-badge badge-past">Past</span>
+            {% elif is_future %}
+            <span class="date-badge badge-future">Scheduled</span>
+            {% endif %}
+
+            <div class="date-picker-wrap">
+                <input type="date" id="datePicker" value="{{ filter_date }}">
+                {% if not is_today %}
+                <a href="/" class="btn-today">Today</a>
+                {% endif %}
+            </div>
+        </div>
 
         <!-- DASHBOARD -->
         <div class="dashboard">
-            <!-- Progress bar (full width) -->
-            <div class="dash-progress">
-                <div class="dash-progress-top">
-                    <h3>Completion</h3>
-                    <span class="dash-progress-pct">{{ stats.pct }}%</span>
-                </div>
+            <div class="dash-card">
+                <div class="dash-card-label">Today</div>
+                <div class="dash-card-value">{{ stats.pending }}</div>
+            </div>
+            <div class="dash-card">
+                <div class="dash-card-label">Done</div>
+                <div class="dash-card-value green">{{ stats.completed }}</div>
+            </div>
+            <div class="dash-card">
+                <div class="dash-card-label">Overdue</div>
+                <div class="dash-card-value red">{{ stats.overdue }}</div>
+            </div>
+            <div class="dash-card">
+                <div class="dash-card-label">Upcoming</div>
+                <div class="dash-card-value blue">{{ stats.upcoming }}</div>
+            </div>
+
+            <div class="dash-progress-row">
+                <span class="progress-label">{{ filter_date_display }}</span>
                 <div class="progress-bar">
                     <div class="progress-fill" style="width: {{ stats.pct }}%"></div>
                 </div>
-                <div class="dash-progress-row">
-                    <div class="dash-progress-stat">
-                        <span class="dot dot-done"></span>
-                        <span>{{ stats.completed }} done</span>
-                    </div>
-                    <div class="dash-progress-stat">
-                        <span class="dot dot-pending"></span>
-                        <span>{{ stats.pending }} pending</span>
-                    </div>
-                    <div class="dash-progress-stat" style="margin-left:auto; color:var(--text-dim);">
-                        {{ stats.total }} total
-                    </div>
-                </div>
-            </div>
-
-            <!-- Total tasks card -->
-            <div class="dash-card">
-                <div class="dash-card-label">Total Tasks</div>
-                <div class="dash-card-value">{{ stats.total }}</div>
-            </div>
-
-            <!-- Priority breakdown -->
-            <div class="dash-priorities">
-                <div class="dash-card-label">Active by Priority</div>
-                <div class="priority-bars">
-                    <div class="priority-row">
-                        <span class="label" style="color:var(--red)">High</span>
-                        <div class="bar-bg">
-                            <div class="bar-fill bar-high" style="width: {{ (stats.high / stats.pending * 100) if stats.pending > 0 else 0 }}%"></div>
-                        </div>
-                        <span class="count">{{ stats.high }}</span>
-                    </div>
-                    <div class="priority-row">
-                        <span class="label" style="color:var(--accent)">Medium</span>
-                        <div class="bar-bg">
-                            <div class="bar-fill bar-med" style="width: {{ (stats.medium / stats.pending * 100) if stats.pending > 0 else 0 }}%"></div>
-                        </div>
-                        <span class="count">{{ stats.medium }}</span>
-                    </div>
-                    <div class="priority-row">
-                        <span class="label" style="color:var(--green)">Low</span>
-                        <div class="bar-bg">
-                            <div class="bar-fill bar-low" style="width: {{ (stats.low / stats.pending * 100) if stats.pending > 0 else 0 }}%"></div>
-                        </div>
-                        <span class="count">{{ stats.low }}</span>
-                    </div>
-                </div>
+                <span class="progress-pct">{{ stats.pct }}%</span>
             </div>
         </div>
 
@@ -557,6 +540,7 @@
         <div class="add-form">
             <div class="form-title">New Task</div>
             <form method="POST" action="/add">
+                <input type="hidden" name="current_date" value="{{ filter_date }}">
                 <div class="form-row">
                     <input type="text" name="title" placeholder="What needs to be done?" required>
                     <select name="priority">
@@ -564,6 +548,7 @@
                         <option value="medium" selected>Medium</option>
                         <option value="low">Low</option>
                     </select>
+                    <input type="date" name="due_date" class="form-date-input" value="{{ filter_date }}">
                 </div>
                 <div class="form-row form-row-full">
                     <textarea name="description" placeholder="Add a description (optional)..." rows="2"></textarea>
@@ -576,22 +561,27 @@
 
         <!-- TASK LIST -->
         {% if tasks %}
-        <div class="section-label">Tasks ({{ tasks|length }})</div>
+        <div class="section-label">Tasks for {{ filter_date_display }} ({{ tasks|length }})</div>
         <ul class="task-list">
             {% for task in tasks %}
+            {% set pri = task[5] or 'medium' %}
+            {% set due = task[6] %}
             <li class="task-item {{ 'completed' if task[3] else '' }}">
-                <div class="priority-dot {{ (task[5] or 'medium') }}"></div>
+                <div class="priority-dot {{ pri }}"></div>
                 <div class="task-content">
                     <div class="task-title">{{ task[1] }}</div>
                     {% if task[2] %}
                     <div class="task-desc">{{ task[2] }}</div>
                     {% endif %}
                     <div class="task-meta">
+                        <span class="task-priority-tag tag-{{ pri }}">{{ pri }}</span>
+                        {% if due %}
+                        <span class="task-due-tag due-today">{{ due.strftime('%b %d') }}</span>
+                        {% else %}
+                        <span class="task-due-tag due-none">no date</span>
+                        {% endif %}
                         <span class="task-date">
-                            {{ task[4].strftime('%b %d, %Y') if task[4] else '' }}
-                        </span>
-                        <span class="task-priority-tag tag-{{ task[5] or 'medium' }}">
-                            {{ (task[5] or 'medium') }}
+                            created {{ task[4].strftime('%b %d') if task[4] else '' }}
                         </span>
                     </div>
                 </div>
@@ -609,7 +599,14 @@
         {% else %}
         <div class="empty">
             <div class="empty-icon">&#9744;</div>
-            <p>No tasks yet — add one above to get started.</p>
+            {% if is_future %}
+            <p>No tasks scheduled for {{ filter_date_display }}</p>
+            <p class="sub">Add tasks above to plan ahead</p>
+            {% elif is_past %}
+            <p>No tasks were due on {{ filter_date_display }}</p>
+            {% else %}
+            <p>No tasks for today — add one above to get started</p>
+            {% endif %}
         </div>
         {% endif %}
 
@@ -617,7 +614,27 @@
         <footer>
             <p>Built by <a href="https://farhan5897.github.io" target="_blank">Farhan Alam</a> &middot; Powered by Azure</p>
         </footer>
-
     </div>
+
+    <!-- DATE NAVIGATION JS -->
+    <script>
+        // Calendar picker — navigate on change
+        document.getElementById('datePicker').addEventListener('change', function() {
+            window.location.href = '/?date=' + this.value;
+        });
+
+        // Arrow navigation
+        const currentDate = new Date('{{ filter_date }}T00:00:00');
+
+        const prevDate = new Date(currentDate);
+        prevDate.setDate(prevDate.getDate() - 1);
+        const prevStr = prevDate.toISOString().split('T')[0];
+        document.getElementById('prevDay').href = '/?date=' + prevStr;
+
+        const nextDate = new Date(currentDate);
+        nextDate.setDate(nextDate.getDate() + 1);
+        const nextStr = nextDate.toISOString().split('T')[0];
+        document.getElementById('nextDay').href = '/?date=' + nextStr;
+    </script>
 </body>
 </html>
