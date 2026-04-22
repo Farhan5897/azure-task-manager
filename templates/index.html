@@ -78,6 +78,33 @@
             color: var(--text-dim);
         }
 
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        .header-username {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .btn-logout {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 5px 12px;
+            border-radius: 6px;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-logout:hover {
+            border-color: var(--red-border);
+            color: var(--red);
+        }
+
         /* ===== DASHBOARD ===== */
         .dashboard {
             display: grid;
@@ -451,9 +478,10 @@
                 <p>Built by Farhan Alam on Azure</p>
             </div>
             <div class="header-right">
-                <span class="header-chip">Flask</span>
-                <span class="header-chip">Azure SQL</span>
-                <span class="header-chip">CI/CD</span>
+                <div class="header-user">
+                    <span class="header-username">{{ username }}</span>
+                    <a href="/logout" class="btn-logout">Logout</a>
+                </div>
             </div>
         </div>
 
