@@ -4,6 +4,7 @@ Built with Flask + Azure SQL Database
 Features: User Auth, Priority, Status Dashboard, Due Dates & Scheduling
 """
 import os
+import time
 import pyodbc
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -18,7 +19,8 @@ app.secret_key = os.environ.get('SECRET_KEY', 'farhan-task-manager-secret-key-20
 # DATABASE CONNECTION
 # ============================================================
 
-def get_db_connection():
+def get_db_connection(retries=3, delay=5):
+    """Connect to Azure SQL with retry logic for serverless cold starts."""
     conn_str = (
         f"Driver={{ODBC Driver 18 for SQL Server}};"
         f"Server={os.environ.get('SQL_SERVER', 'your-server.database.windows.net')};"
@@ -27,8 +29,17 @@ def get_db_connection():
         f"Pwd={os.environ.get('SQL_PASSWORD', 'your-password')};"
         f"Encrypt=yes;"
         f"TrustServerCertificate=no;"
+        f"Connection Timeout=30;"
     )
-    return pyodbc.connect(conn_str)
+    for attempt in range(retries):
+        try:
+            return pyodbc.connect(conn_str)
+        except pyodbc.Error as e:
+            if attempt < retries - 1:
+                print(f"DB connection attempt {attempt + 1} failed, retrying in {delay}s...")
+                time.sleep(delay)
+            else:
+                raise e
 
 
 # ============================================================
