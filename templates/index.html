@@ -473,10 +473,18 @@
                 <p>Built by Farhan Alam on Azure</p>
             </div>
             <div class="header-right">
+                {% if logged_in %}
                 <div class="header-user">
                     <span class="header-username">{{ username }}</span>
                     <a href="/logout" class="btn-logout">Logout</a>
                 </div>
+                {% else %}
+                <div class="header-user">
+                    <span class="header-username" style="color:var(--text-dim); font-size:0.78rem;">Guest mode</span>
+                    <a href="/login" class="btn-logout" style="border-color:var(--accent-border); color:var(--accent);">Sign In</a>
+                    <a href="/register" class="btn-logout" style="background:var(--accent); color:var(--bg); border-color:var(--accent);">Sign Up</a>
+                </div>
+                {% endif %}
             </div>
         </div>
 

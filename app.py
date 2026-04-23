@@ -2,6 +2,7 @@
 Task Manager Web App - Azure Project 2
 Built with Flask + Azure SQL Database
 Features: User Auth, Priority, Status Dashboard, Due Dates & Scheduling
+Guest mode: anyone can use it, login to save your tasks
 """
 import os
 import time
@@ -73,7 +74,8 @@ def init_db():
                 is_complete BIT DEFAULT 0,
                 priority NVARCHAR(20) DEFAULT 'medium',
                 due_date DATE NULL,
-                user_id INT,
+                user_id INT NULL,
+                session_id NVARCHAR(100) NULL,
                 created_at DATETIME DEFAULT GETDATE(),
                 FOREIGN KEY (user_id) REFERENCES users(id)
             )
@@ -84,6 +86,7 @@ def init_db():
             ('priority', 'NVARCHAR(20)', "'medium'"),
             ('user_id', 'INT', 'NULL'),
             ('due_date', 'DATE', 'NULL'),
+            ('session_id', 'NVARCHAR(100)', 'NULL'),
         ]:
             cursor.execute(f"""
                 IF NOT EXISTS (
@@ -102,16 +105,27 @@ def init_db():
 
 
 # ============================================================
-# AUTH DECORATOR
+# HELPERS
 # ============================================================
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
+def is_logged_in():
+    return 'user_id' in session
+
+
+def get_guest_id():
+    """Get or create a guest session ID for anonymous users."""
+    if 'guest_id' not in session:
+        import uuid
+        session['guest_id'] = str(uuid.uuid4())
+    return session['guest_id']
+
+
+def get_task_filter():
+    """Returns (column, value) for filtering tasks based on auth state."""
+    if is_logged_in():
+        return ('user_id', session['user_id'])
+    else:
+        return ('session_id', get_guest_id())
 
 
 # ============================================================
@@ -120,7 +134,7 @@ def login_required(f):
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if 'user_id' in session:
+    if is_logged_in():
         return redirect(url_for('index'))
 
     if request.method == 'POST':
@@ -153,8 +167,21 @@ def register():
 
             cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
             user = cursor.fetchone()
-            session['user_id'] = user[0]
+            new_user_id = user[0]
+
+            # Transfer guest tasks to the new account
+            guest_id = session.get('guest_id')
+            if guest_id:
+                cursor.execute(
+                    "UPDATE tasks SET user_id = ?, session_id = NULL WHERE session_id = ?",
+                    (new_user_id, guest_id)
+                )
+                conn.commit()
+
+            session['user_id'] = new_user_id
             session['username'] = username
+            session.pop('guest_id', None)
+
             cursor.close()
             conn.close()
             return redirect(url_for('index'))
@@ -166,7 +193,7 @@ def register():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if 'user_id' in session:
+    if is_logged_in():
         return redirect(url_for('index'))
 
     if request.method == 'POST':
@@ -181,14 +208,27 @@ def login():
             cursor = conn.cursor()
             cursor.execute("SELECT id, username, password_hash FROM users WHERE username = ? OR email = ?", (username, username))
             user = cursor.fetchone()
-            cursor.close()
-            conn.close()
 
             if user and check_password_hash(user[2], password):
+                # Transfer guest tasks to logged-in account
+                guest_id = session.get('guest_id')
+                if guest_id:
+                    cursor.execute(
+                        "UPDATE tasks SET user_id = ?, session_id = NULL WHERE session_id = ?",
+                        (user[0], guest_id)
+                    )
+                    conn.commit()
+
                 session['user_id'] = user[0]
                 session['username'] = user[1]
+                session.pop('guest_id', None)
+
+                cursor.close()
+                conn.close()
                 return redirect(url_for('index'))
             else:
+                cursor.close()
+                conn.close()
                 return render_template('login.html', error='Invalid username or password.', username=username)
         except Exception as e:
             return render_template('login.html', error=f'Login failed: {e}', username=username)
@@ -199,19 +239,17 @@ def login():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 
 # ============================================================
-# TASK ROUTES
+# TASK ROUTES (open to everyone)
 # ============================================================
 
 @app.route('/')
-@login_required
 def index():
-    """Display user's tasks filtered by date."""
+    """Display tasks filtered by date. Works for guests and logged-in users."""
     try:
-        # Get filter date from query param, default to today
         filter_date_str = request.args.get('date', '')
         today = date.today()
 
@@ -223,55 +261,56 @@ def index():
         else:
             filter_date = today
 
+        col, val = get_task_filter()
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Get tasks for the selected date (+ tasks with no due date if viewing today)
+        # Get tasks for the selected date
         if filter_date == today:
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT id, title, description, is_complete, created_at, priority, due_date
                 FROM tasks
-                WHERE user_id = ? AND (due_date = ? OR due_date IS NULL)
+                WHERE {col} = ? AND (due_date = ? OR due_date IS NULL)
                 ORDER BY
                     is_complete ASC,
                     CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END,
                     created_at DESC
-            """, (session['user_id'], filter_date))
+            """, (val, filter_date))
         else:
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT id, title, description, is_complete, created_at, priority, due_date
                 FROM tasks
-                WHERE user_id = ? AND due_date = ?
+                WHERE {col} = ? AND due_date = ?
                 ORDER BY
                     is_complete ASC,
                     CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END,
                     created_at DESC
-            """, (session['user_id'], filter_date))
+            """, (val, filter_date))
 
         tasks = cursor.fetchall()
 
-        # Also get overdue count (past due dates, not complete)
-        cursor.execute("""
+        # Overdue count
+        cursor.execute(f"""
             SELECT COUNT(*) FROM tasks
-            WHERE user_id = ? AND due_date < ? AND is_complete = 0
-        """, (session['user_id'], today))
+            WHERE {col} = ? AND due_date < ? AND is_complete = 0
+        """, (val, today))
         overdue_count = cursor.fetchone()[0]
 
-        # Get upcoming count (future dates, not complete)
-        cursor.execute("""
+        # Upcoming count
+        cursor.execute(f"""
             SELECT COUNT(*) FROM tasks
-            WHERE user_id = ? AND due_date > ? AND is_complete = 0
-        """, (session['user_id'], today))
+            WHERE {col} = ? AND due_date > ? AND is_complete = 0
+        """, (val, today))
         upcoming_count = cursor.fetchone()[0]
 
-        # Get all-time total for the user
-        cursor.execute("SELECT COUNT(*) FROM tasks WHERE user_id = ?", (session['user_id'],))
+        # All-time total
+        cursor.execute(f"SELECT COUNT(*) FROM tasks WHERE {col} = ?", (val,))
         all_total = cursor.fetchone()[0]
 
         cursor.close()
         conn.close()
 
-        # Build stats for filtered view
+        # Build stats
         total = len(tasks)
         completed = sum(1 for t in tasks if t[3])
         pending = total - completed
@@ -281,38 +320,28 @@ def index():
         pct = round((completed / total) * 100) if total > 0 else 0
 
         stats = {
-            'total': total,
-            'completed': completed,
-            'pending': pending,
-            'high': high,
-            'medium': medium,
-            'low': low,
-            'pct': pct,
-            'overdue': overdue_count,
-            'upcoming': upcoming_count,
-            'all_total': all_total,
+            'total': total, 'completed': completed, 'pending': pending,
+            'high': high, 'medium': medium, 'low': low, 'pct': pct,
+            'overdue': overdue_count, 'upcoming': upcoming_count, 'all_total': all_total,
         }
 
-        # Date context
         is_today = (filter_date == today)
         is_past = (filter_date < today)
         is_future = (filter_date > today)
 
         return render_template('index.html',
-            tasks=tasks,
-            stats=stats,
+            tasks=tasks, stats=stats,
             username=session.get('username'),
+            logged_in=is_logged_in(),
             filter_date=filter_date.strftime('%Y-%m-%d'),
             filter_date_display=filter_date.strftime('%b %d, %Y'),
             today=today.strftime('%Y-%m-%d'),
-            is_today=is_today,
-            is_past=is_past,
-            is_future=is_future,
+            is_today=is_today, is_past=is_past, is_future=is_future,
         )
     except Exception as e:
         stats = {'total':0,'completed':0,'pending':0,'high':0,'medium':0,'low':0,'pct':0,'overdue':0,'upcoming':0,'all_total':0}
         return render_template('index.html', tasks=[], stats=stats, error=str(e),
-            username=session.get('username'),
+            username=session.get('username'), logged_in=is_logged_in(),
             filter_date=date.today().strftime('%Y-%m-%d'),
             filter_date_display=date.today().strftime('%b %d, %Y'),
             today=date.today().strftime('%Y-%m-%d'),
@@ -320,14 +349,12 @@ def index():
 
 
 @app.route('/add', methods=['POST'])
-@login_required
 def add_task():
     title = request.form.get('title', '').strip()
     description = request.form.get('description', '').strip()
     priority = request.form.get('priority', 'medium')
     due_date_str = request.form.get('due_date', '').strip()
 
-    # Parse due date
     due_date = None
     if due_date_str:
         try:
@@ -339,17 +366,24 @@ def add_task():
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO tasks (title, description, priority, due_date, user_id) VALUES (?, ?, ?, ?, ?)",
-                (title, description, priority, due_date, session['user_id'])
-            )
+
+            if is_logged_in():
+                cursor.execute(
+                    "INSERT INTO tasks (title, description, priority, due_date, user_id) VALUES (?, ?, ?, ?, ?)",
+                    (title, description, priority, due_date, session['user_id'])
+                )
+            else:
+                cursor.execute(
+                    "INSERT INTO tasks (title, description, priority, due_date, session_id) VALUES (?, ?, ?, ?, ?)",
+                    (title, description, priority, due_date, get_guest_id())
+                )
+
             conn.commit()
             cursor.close()
             conn.close()
         except Exception as e:
             print(f"Error adding task: {e}")
 
-    # Redirect back to the date the user was viewing
     redirect_date = request.form.get('current_date', '')
     if redirect_date:
         return redirect(url_for('index', date=redirect_date))
@@ -357,14 +391,14 @@ def add_task():
 
 
 @app.route('/toggle/<int:task_id>')
-@login_required
 def toggle_task(task_id):
     try:
+        col, val = get_task_filter()
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE tasks SET is_complete = CASE WHEN is_complete = 1 THEN 0 ELSE 1 END WHERE id = ? AND user_id = ?",
-            (task_id, session['user_id'])
+            f"UPDATE tasks SET is_complete = CASE WHEN is_complete = 1 THEN 0 ELSE 1 END WHERE id = ? AND {col} = ?",
+            (task_id, val)
         )
         conn.commit()
         cursor.close()
@@ -376,12 +410,12 @@ def toggle_task(task_id):
 
 
 @app.route('/delete/<int:task_id>')
-@login_required
 def delete_task(task_id):
     try:
+        col, val = get_task_filter()
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM tasks WHERE id = ? AND user_id = ?", (task_id, session['user_id']))
+        cursor.execute(f"DELETE FROM tasks WHERE id = ? AND {col} = ?", (task_id, val))
         conn.commit()
         cursor.close()
         conn.close()
